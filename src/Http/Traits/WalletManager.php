@@ -241,9 +241,9 @@ trait WalletManager
     $balance = $deposit - abs($withdraw);
 
     if ((int) $wallet->balance === (int) $balance)
-      return Helper::ajaxResponse($balance, 200, "User: $userName, Wallet ID: $wallet->id, Deposite ($deposit), Withdraw ($withdraw), Actual Wallet Balance: ($wallet->balance)");
+      return Helper::ajaxResponse($wallet->toArray(), 200, "User: $userName, Wallet ID: $wallet->id, Deposite ($deposit), Withdraw ($withdraw), Actual Wallet Balance: ($wallet->balance)");
     else
-      return Helper::ajaxResponse($balance, 302, "User: $userName, Wallet ID: $wallet->id, Deposite ($deposit), Withdraw ($withdraw), Actual Wallet Balance: ($wallet->balance)");
+      return Helper::ajaxResponse([$wallet->toArray(), $balance], 302, "User: $userName, Wallet ID: $wallet->id, Deposite ($deposit), Withdraw ($withdraw), Actual Wallet Balance: ($wallet->balance)");
   }
 
   public function wallet()

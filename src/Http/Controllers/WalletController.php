@@ -66,16 +66,17 @@ class WalletController extends Controller
     if($faulter['success'] === false)
     {
       $data[] = [
-        'holder_id' => '', 
-        'id' => '',
-        'balance' => '',
-        'message' => '',
-      ]
-
+        'holder_id' => $faulter['data'][0]['holder_id'], 
+        'id' => $faulter['data'][0]['id'],
+        'wallet_balance' => $faulter['data'][0]['balance'],
+        'transactions_balance' => $faulter['data'][1],
+        'status' => $faulter['data'][0]['status'],
+      ];
+      // dd($data);
     }
 
     if($wallets){
-      return view('wallet::defaulter', compact('wallets'));
+      return view('wallet::defaulter', compact('wallets', 'data'));
     }
     else{
       return response('No Wallet Found with Negative Balance');
