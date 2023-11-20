@@ -1,0 +1,29 @@
+{
+    "name": "faanigee/wallet",
+    "description": "Simple wallet for your Application",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Faanigee\\Wallet\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "IRFAN AHMAD",
+            "email": "irfanahmad@msn.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Faanigee\\Wallet\\WalletServiceProvider"
+            ],
+            "aliases": {
+                "Debugbar": "Faanigee\\Wallet\\Facade"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {}
+}
