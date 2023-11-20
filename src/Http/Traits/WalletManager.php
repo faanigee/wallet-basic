@@ -231,19 +231,34 @@ trait WalletManager
     return $wallet;
   }
 
-  protected function compareTransactions($id)
+  protected function compareTransactions(Wallet $wallet)
   {
-    $wallet = Wallet::find($id);
-    $userName = User::find($wallet->holder_id)->name;
-    $deposit = Transaction::where('wallet_id', $id)->where('payable_id', $wallet->holder_id)->where('type', 'deposit')->where('confirmed', 1)->sum('amount');
-    $withdraw = Transaction::where('wallet_id', $id)->where('payable_id', $wallet->holder_id)->where('type', 'withdraw')->where('confirmed', 1)->sum('amount');
+    $error = false;
+    $userName = null;
+    // $wallet = Wallet::find($id);
+    $user = $wallet ? User::find($wallet->holder_id) : $error = true;
+    if($user){
+      $userName = $user->name;
+    }
+    if($error === true){
+      return Helper::ajaxResponse($error, 302, "Wallet not Found");
+    }
+    $deposit = Transaction::where('wallet_id', $wallet->id)->where('payable_id', $wallet->holder_id)->where('type', 'deposit')->where('confirmed', 1)->sum('amount');
+    $withdraw = Transaction::where('wallet_id', $wallet->id)->where('payable_id', $wallet->holder_id)->where('type', 'withdraw')->where('confirmed', 1)->sum('amount');
 
     $balance = $deposit - abs($withdraw);
 
-    if ((int) $wallet->balance === (int) $balance)
-      return Helper::ajaxResponse($wallet->toArray(), 200, "User: $userName, Wallet ID: $wallet->id, Deposite ($deposit), Withdraw ($withdraw), Actual Wallet Balance: ($wallet->balance)");
+    if ((int) $wallet->balance === (int) $balance){
+      return Helper::ajaxResponse($wallet->toArray(), 200, "Wallet Ok");
+    }
     else
-      return Helper::ajaxResponse([$wallet->toArray(), $balance], 302, "User: $userName, Wallet ID: $wallet->id, Deposite ($deposit), Withdraw ($withdraw), Actual Wallet Balance: ($wallet->balance)");
+    {
+      $wallet->status = 'defaulter';
+      $wallet->description = 'Transaction Mismatch';
+      $wallet->trx_balance = $balance;
+      $wallet->update();
+      return Helper::ajaxResponse([$wallet->toArray(), $balance], 302, "Wallet Issue Detected");
+    }
   }
 
   public function wallet()

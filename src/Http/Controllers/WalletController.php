@@ -18,10 +18,10 @@ class WalletController extends Controller
   public function test()
   {
 
-    $user = User::where('id',1)->with('wallet')->first();
+    $user = User::where('id', 1)->with('wallet')->first();
     // dd($user);
-    $res_deposit = $this->deposit($user, 10000, true, ['description'=>'testing amount', 'working' => 'ok']);
-    $res_withdraw = $this->withdraw($user, 2500, true, ['description'=>'testing amount', 'working' => 'ok']);
+    $res_deposit = $this->deposit($user, 10000, true, ['description' => 'testing amount', 'working' => 'ok']);
+    $res_withdraw = $this->withdraw($user, 2500, true, ['description' => 'testing amount', 'working' => 'ok']);
     // $balance = $this->updateBalance(1);
 
     // dd($balance);
@@ -39,48 +39,53 @@ class WalletController extends Controller
     // dd($data);
   }
 
-  public function walletReport(Request $request) {
+  public function walletReport(Request $request)
+  {
     $user = $request->userId;
     $user = $user ? $user : ($user ? Auth::user() : User::find(1)->with('wallet')->first());
     // dd($user);
-    if($user){
+    if ($user) {
       $wallet = $user->wallet;
-      if($wallet){
+      if ($wallet) {
         $balance = 0;
         $ledger = Transaction::where('wallet_id', $wallet->id)->get();
         return view('wallet::ledger', compact('ledger', 'user', 'balance'));
         // return response($ledger, 200);
-      }else{
-      return response('Wallet is not associated with this User: '.$user->irfan, 201);
+      } else {
+        return response('Wallet is not associated with this User: ' . $user->irfan, 201);
       }
-    }
-    else{
+    } else {
       return response('Please Select the User to get the report', 201);
     }
   }
 
-  public function checkDefaulters() {
+  public function checkDefaulters()
+  {
 
+    $data = [];
     $wallets = Wallet::where('balance', '<', 0)->get();
-    $faulter = $this->compareTransactions(1);
-    if($faulter['success'] === false)
-    {
-      $data[] = [
-        'holder_id' => $faulter['data'][0]['holder_id'], 
-        'id' => $faulter['data'][0]['id'],
-        'wallet_balance' => $faulter['data'][0]['balance'],
-        'transactions_balance' => $faulter['data'][1],
-        'status' => $faulter['data'][0]['status'],
-      ];
-      // dd($data);
+    foreach (Wallet::where('status', 'Active')->where('first_run', 0)->limit(5000)->latest()->get() as $wallet) {
+      if ($wallet) {
+        $faulter = $this->compareTransactions($wallet);
+        if ($faulter['success'] === false && $faulter['data'] != 1) {
+          $data[] = [
+            'holder_id' => $faulter['data'][0]['holder_id'],
+            'id' => $faulter['data'][0]['id'],
+            'wallet_balance' => $faulter['data'][0]['balance'],
+            'transactions_balance' => $faulter['data'][1],
+            'status' => $faulter['data'][0]['status'],
+          ];
+          // dd($data);
+        }
+        $wallet->first_run = 1;
+        $wallet->update();
+      }
     }
 
-    if($wallets){
+    if ($wallets) {
       return view('wallet::defaulter', compact('wallets', 'data'));
-    }
-    else{
+    } else {
       return response('No Wallet Found with Negative Balance');
     }
   }
-  
 }

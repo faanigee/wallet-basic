@@ -14,13 +14,15 @@ return new class() extends Migration {
         Schema::create($this->table(), function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->morphs('holder');
-            $table->enum('status', ['Active', 'Under Investigation', 'Banned', 'Defaulter']);
+            $table->enum('status', ['active', 'underinvestigation', 'banned', 'defaulter']);
+            $table->tinyInteger('first_run')->default(0);
             $table->string('name');
             $table->string('slug')->index();
             $table->uuid('uuid')->unique();
             $table->string('description')->nullable();
             $table->json('meta')->nullable();
             $table->decimal('balance', 64, 0)->default(0);
+            $table->decimal('trx_balance', 64, 0)->default(0);
             $table->unsignedSmallInteger('decimal_places')->default(2);
             $table->timestamps();
 
