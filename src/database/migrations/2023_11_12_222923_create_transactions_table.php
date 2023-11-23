@@ -15,7 +15,7 @@ return new class() extends Migration {
             $table->morphs('payable');
             $table->unsignedBigInteger('wallet_id');
             $table->enum('type', ['deposit', 'withdraw'])->index();
-            $table->decimal('amount', 64, 0);
+            $table->double('amount', 64, 2);
             $table->boolean('confirmed');
             $table->json('meta')->nullable();
             $table->uuid('uuid')->unique();

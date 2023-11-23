@@ -12,7 +12,7 @@ use Faanigee\Wallet\Models\Transaction;
 
 trait WalletManager
 {
-  public function deposit(User $user = null, int|float $amount, bool $confirmed = false, ?array $meta = null)
+  public function deposit(User $user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
   {
     try {
       DB::beginTransaction();
@@ -26,29 +26,75 @@ trait WalletManager
         // dd($currentUser);
         $wallet = $currentUser->wallet;
         if ($wallet) {
-          $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-          $balance = $wallet->getBalance();
-
-          $transaction = Transaction::create([
-            'wallet_id' => $wallet->id,
-            'payable_type' => 'App\User',
-            'payable_id' => $user_id,
-            'type' => 'deposit',
-            'holder_id' => $user_id,
-            'amount' => $amount,
-            'meta' => $meta,
-            'confirmed' => $confirmed,
-            'uuid' => Str::uuid(),
-          ]);
-
-          if ($transaction && $confirmed) {
-            $balance = $wallet->getBalance();
-            $wallet->balance = $balance + (int)$amount;
-            $wallet->update();
+          $wallet_status = $this->checkDefaulterWallet($wallet);
+         
+          if($wallet->status === 'active'){
+              $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+              $balance = $wallet->getBalance();
+              
+              $transaction = new Transaction();
+              
+              
+              $transaction->create([
+                'wallet_id' => $wallet->id,
+                'payable_type' => 'App\User',
+                'payable_id' => $user_id,
+                'ref_id' => $ref_id,
+                'type' => 'deposit',
+                'holder_id' => $user_id,
+                'amount' => $amount,
+                'meta' => $meta,
+                'confirmed' => $confirmed,
+                'uuid' => Str::uuid(),
+              ]);
+    
+              if ($transaction && $confirmed) {
+                $balance = $wallet->getBalance();
+                $trx_bal = $wallet->trx_balance;
+                $wallet->balance = $balance + $amount;
+                $wallet->trx_balance = $trx_bal + $amount;
+                $wallet->update();
+                
+              }
+              
+              $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'deposit')->lockForUpdate()->get();
+             
+              if($checkRefund->count() > 1){
+                $results = [
+                  'transaction' => $checkRefund
+                  ];
+                DB::rollBack();
+                return Helper::ajaxResponse($results, 302, "Transaction Failed (Already Refunded)...");
+              }
+              
+              DB::commit();
+              
+              $results = [
+              'transaction' => $transaction->toArray(),
+              'wallet_balance' => $wallet->balance,
+              'wallet_trx_bal' => $wallet->trx_balance,
+              'wallet_status' => $wallet->status,
+             ];
+          }else{
+            //   return $wallet_status;
+              if($wallet_status['success'] === false)
+            {
+                $results = [
+                    'wallet_status' => $wallet_status['data'],
+                ];
+            }else{
+                $results = [
+                    'wallet_status' => $wallet_status,
+                ];
+            }
+              DB::commit();
+             return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Failed...");
           }
-          DB::commit();
+          
+          
+             
           $user = null;
-          return Helper::ajaxResponse($transaction->toArray(), 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
+          return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
         } else {
 
           DB::commit();
@@ -69,7 +115,7 @@ trait WalletManager
     }
   }
 
-  protected function withdraw(User $user = null, int|float $amount, bool $confirmed = false, ?array $meta = null)
+  public function withdraw(User $user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
   {
     try {
       DB::beginTransaction();
@@ -82,42 +128,71 @@ trait WalletManager
         $wallet = $currentUser->wallet;
 
         if ($wallet) {
-          $balance = $wallet->getBalance();
-
-          if ($balance < 0) {
-            $wallet->status = 'Banned';
-            $wallet->update();
+            $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+            $wallet_status = $this->checkDefaulterWallet($wallet);
+          if($wallet->status === 'active'){
+              $balance = $wallet->getBalance();
+    
+              if ($balance < 0) {
+                $wallet->status = 'Banned';
+                $wallet->update();
+                DB::commit();
+                $user = null;
+                return Helper::ajaxResponse($wallet, 302, "User Banned due to Negative Balance...");
+              }
+              if ($balance < $amount || $balance == 0) {
+                $reqBalance = $amount - $balance;
+                return Helper::ajaxResponse($wallet->toArray(), 302, "Low Balance (current: $balance, required more: $reqBalance)...!");
+              }
+    
+            //   $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+    
+              $transaction = Transaction::create([
+                'wallet_id' => $wallet->id,
+                'payable_type' => 'App\User',
+                'payable_id' => $user_id,
+                'ref_id' => $ref_id,
+                'type' => 'withdraw',
+                'holder_id' => $user_id,
+                'amount' => -$amount,
+                'meta' => $meta,
+                'confirmed' => $confirmed,
+                'uuid' => Str::uuid(),
+              ]);
+    
+              if ($transaction && $confirmed) {
+                $balance = $wallet->getBalance();
+                $trx_bal = $wallet->trx_balance;
+                $wallet->balance = $balance - $amount;
+                $wallet->trx_balance = $trx_bal - $amount;
+                $wallet->update();
+              }
+              
+              DB::commit();
+             $results = [
+              'transaction' => $transaction->toArray(),
+              'wallet_balance' => $wallet->balance,
+              'wallet_trx_bal' => $wallet->trx_balance,
+              'wallet_status' => $wallet->status,
+             ];
+              $user = null;
+              return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Successfull...");
+          }
+          else{
+            //   return $wallet_status;
+            if($wallet_status['success'] === false)
+            {
+                $results = [
+                    'wallet_status' => $wallet_status['data'],
+                ];
+            }else{
+                $results = [
+                    'wallet_status' => $wallet_status,
+                ];
+            }
             DB::commit();
-            $user = null;
-            return Helper::ajaxResponse($wallet, 302, "User Banned due to Negative Balance...");
+             return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Failed due to trx balance mismatch...");  
           }
-          if ($balance < $amount || $balance == 0) {
-            $reqBalance = $amount - $balance;
-            return Helper::ajaxResponse($wallet->toArray(), 302, "Low Balance (current: $balance, required more: $reqBalance)...!");
-          }
-
-          $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-
-          $transaction = Transaction::create([
-            'wallet_id' => $wallet->id,
-            'payable_type' => 'App\User',
-            'payable_id' => $user_id,
-            'type' => 'withdraw',
-            'holder_id' => $user_id,
-            'amount' => -$amount,
-            'meta' => $meta,
-            'confirmed' => $confirmed,
-            'uuid' => Str::uuid(),
-          ]);
-
-          if ($transaction && $confirmed) {
-            $balance = $wallet->getBalance();
-            $wallet->balance = $balance - (int)$amount;
-            $wallet->update();
-          }
-          DB::commit();
-          $user = null;
-          return Helper::ajaxResponse($transaction->toArray(), 200, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Successfull...");
         }
         // return $transaction;
         else {
@@ -248,8 +323,11 @@ trait WalletManager
 
     $balance = $deposit - abs($withdraw);
 
-    if ((int) $wallet->balance === (int) $balance){
-      return Helper::ajaxResponse($wallet->toArray(), 200, "Wallet Ok");
+    if ( $wallet->getBalance() === (int) $balance){
+        // dd($wallet->getBalance(), $balance);
+      $wallet->trx_balance = $balance;
+      $wallet->update();
+      return Helper::ajaxResponse(["Wallet Ok"], 200, "Wallet Ok");
     }
     else
     {
@@ -257,8 +335,39 @@ trait WalletManager
       $wallet->description = 'Transaction Mismatch';
       $wallet->trx_balance = $balance;
       $wallet->update();
-      return Helper::ajaxResponse([$wallet->toArray(), $balance], 302, "Wallet Issue Detected");
+      
+      $results = [
+          'wallet'=>$wallet->toArray(), 
+          'transaction_balance'=>$balance
+      ];
+      return Helper::ajaxResponse($results, 302, "Wallet Issue Detected");
     }
+  }
+  
+  protected function checkDefaulterWallet($wallet){
+      if ($wallet) {
+        $faulter = $this->compareTransactions($wallet);
+        if ($faulter['success'] === false && $faulter['data'] != 1) {
+          $data[] = [
+            'holder_id' => $faulter['data']['wallet']['holder_id'],
+            'id' => $faulter['data']['wallet']['id'],
+            'wallet_balance' => $faulter['data']['wallet']['balance'],
+            'transactions_balance' => $faulter['data']['transaction_balance'],
+            'status' => $faulter['data']['wallet']['status'],
+          ];
+          // dd($data);
+          $wallet->first_run = 1;
+          $wallet->update();
+          return Helper::ajaxResponse($data, 302, "Wallet Issue Detected");
+        }
+        else {
+            $wallet->description = 'Wallet OK';
+            $wallet->status = "active";
+            $wallet->update();
+            return Helper::ajaxResponse($faulter, 200, "Wallet OK");
+          }
+      }
+     return Helper::ajaxResponse($wallet, 302, "Wallet is not found");
   }
 
   public function wallet()
@@ -266,3 +375,4 @@ trait WalletManager
     return $this->hasOne(Wallet::class, 'holder_id', 'id');
   }
 }
+

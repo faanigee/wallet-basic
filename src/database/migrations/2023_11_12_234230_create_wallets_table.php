@@ -15,18 +15,17 @@ return new class() extends Migration {
             $table->bigIncrements('id');
             $table->morphs('holder');
             $table->enum('status', ['active', 'underinvestigation', 'banned', 'defaulter']);
-            $table->tinyInteger('first_run')->default(0);
             $table->string('name');
             $table->string('slug')->index();
             $table->uuid('uuid')->unique();
             $table->string('description')->nullable();
             $table->json('meta')->nullable();
             $table->decimal('balance', 64, 0)->default(0);
-            $table->decimal('trx_balance', 64, 0)->default(0);
             $table->unsignedSmallInteger('decimal_places')->default(2);
             $table->timestamps();
 
             $table->unique(['holder_type', 'holder_id', 'slug']);
+            $table->index(['status'], 'status_ind');
         });
 
         Schema::table($this->transactionTable(), function (Blueprint $table) {

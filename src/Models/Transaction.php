@@ -40,6 +40,7 @@ class Transaction extends Model
         'payable_type',
         'payable_id',
         'wallet_id',
+        'ref_id',
         'uuid',
         'type',
         'amount',

@@ -6,6 +6,6 @@ Route::get('/wallet', function () {
   return view('wallet::index')->with(['config' => config('wallet')]);
 });
 
-Route::get('/test', [WalletController::class, 'test']);
+Route::get('/wallet/test', [WalletController::class, 'test']);
 Route::match(['get', 'post'], '/wallet/ledger', [WalletController::class, 'walletReport']);
 Route::match(['get', 'post'], '/wallet/defaulters', [WalletController::class, 'checkDefaulters']);

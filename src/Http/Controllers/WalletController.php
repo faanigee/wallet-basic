@@ -20,8 +20,8 @@ class WalletController extends Controller
 
     $user = User::where('id', 1)->with('wallet')->first();
     // dd($user);
-    $res_deposit = $this->deposit($user, 10000, true, ['description' => 'testing amount', 'working' => 'ok']);
-    $res_withdraw = $this->withdraw($user, 2500, true, ['description' => 'testing amount', 'working' => 'ok']);
+    $res_deposit = $this->deposit($user, 10000, ['description' => 'testing amount', 'working' => 'ok'], 1234);
+    $res_withdraw = $this->withdraw($user, 2500, ['description' => 'testing amount', 'working' => 'ok'],1234);
     // $balance = $this->updateBalance(1);
 
     // dd($balance);
