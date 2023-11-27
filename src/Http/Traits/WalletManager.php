@@ -17,6 +17,7 @@ trait WalletManager
     try {
       DB::beginTransaction();
       $currentUser = $user ?? auth()->user();
+    //   $currentUser->refresh();
       // dd($currentUser);
       // dd($user, $amount, $confirmed, $meta);
       $user_id = $currentUser->id;
@@ -29,52 +30,46 @@ trait WalletManager
           $wallet_status = $this->checkDefaulterWallet($wallet);
          
           if($wallet->status === 'active'){
-              $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-              $balance = $wallet->getBalance();
-              
-              $transaction = new Transaction();
-              
-              
-              $transaction->create([
-                'wallet_id' => $wallet->id,
-                'payable_type' => 'App\User',
-                'payable_id' => $user_id,
-                'ref_id' => $ref_id,
-                'type' => 'deposit',
-                'holder_id' => $user_id,
-                'amount' => $amount,
-                'meta' => $meta,
-                'confirmed' => $confirmed,
-                'uuid' => Str::uuid(),
-              ]);
-    
-              if ($transaction && $confirmed) {
+                $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
                 $balance = $wallet->getBalance();
-                $trx_bal = $wallet->trx_balance;
-                $wallet->balance = $balance + $amount;
-                $wallet->trx_balance = $trx_bal + $amount;
-                $wallet->update();
-                
-              }
-              
-              $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'deposit')->lockForUpdate()->get();
-             
-              if($checkRefund->count() > 1){
+        
+                $transaction = new Transaction();
+        
+                $trx_result = $transaction->create([
+                    'wallet_id' => $wallet->id,
+                    'payable_type' => 'App\User',
+                    'payable_id' => $user_id,
+                    'ref_id' => $ref_id,
+                    'type' => 'deposit',
+                    'holder_id' => $user_id,
+                    'amount' => $amount,
+                    'meta' => $meta,
+                    'confirmed' => $confirmed,
+                    'uuid' => Str::uuid(),
+                ])->lockForUpdate();
+        
+                $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'deposit')->count();
+                if ($checkRefund > 1) {
+                    DB::rollBack();
+                    throw new \Exception("Transaction Failed (Already Refunded)...");
+                }
+        
+                if ($trx_result && $confirmed) {
+                    $wallet->balance += $amount;
+                    $wallet->trx_balance += $amount;
+                    $wallet->update();
+                }
+        
                 $results = [
-                  'transaction' => $checkRefund
-                  ];
-                DB::rollBack();
-                return Helper::ajaxResponse($results, 302, "Transaction Failed (Already Refunded)...");
-              }
+                  'old_balance' => $balance,
+                  'new_balance' => $wallet->balance,
+                  'wallet_trx_bal' => $wallet->trx_balance,
+                  'wallet_status' => $wallet->status,
+                  'transaction' => $trx_result->get()->toArray(),
+                ];
+             
               
-              DB::commit();
-              
-              $results = [
-              'transaction' => $transaction->toArray(),
-              'wallet_balance' => $wallet->balance,
-              'wallet_trx_bal' => $wallet->trx_balance,
-              'wallet_status' => $wallet->status,
-             ];
+             
           }else{
             //   return $wallet_status;
               if($wallet_status['success'] === false)
@@ -87,14 +82,17 @@ trait WalletManager
                     'wallet_status' => $wallet_status,
                 ];
             }
-              DB::commit();
-             return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Failed...");
+            
+            DB::commit();
+            return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Failed...");
           }
           
           
-             
-          $user = null;
+          DB::commit();
+          $user->refresh();
           return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
+        
+            
         } else {
 
           DB::commit();
@@ -128,7 +126,7 @@ trait WalletManager
         $wallet = $currentUser->wallet;
 
         if ($wallet) {
-            $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+            $wallet = Wallet::where('id', $wallet->id)->first();
             $wallet_status = $this->checkDefaulterWallet($wallet);
           if($wallet->status === 'active'){
               $balance = $wallet->getBalance();
@@ -136,12 +134,14 @@ trait WalletManager
               if ($balance < 0) {
                 $wallet->status = 'Banned';
                 $wallet->update();
+                
                 DB::commit();
-                $user = null;
                 return Helper::ajaxResponse($wallet, 302, "User Banned due to Negative Balance...");
               }
               if ($balance < $amount || $balance == 0) {
                 $reqBalance = $amount - $balance;
+                
+                DB::rollBack();
                 return Helper::ajaxResponse($wallet->toArray(), 302, "Low Balance (current: $balance, required more: $reqBalance)...!");
               }
     
@@ -158,7 +158,7 @@ trait WalletManager
                 'meta' => $meta,
                 'confirmed' => $confirmed,
                 'uuid' => Str::uuid(),
-              ]);
+              ])->lockForUpdate();
     
               if ($transaction && $confirmed) {
                 $balance = $wallet->getBalance();
@@ -169,13 +169,16 @@ trait WalletManager
               }
               
               DB::commit();
-             $results = [
-              'transaction' => $transaction->toArray(),
-              'wallet_balance' => $wallet->balance,
+              
+              $results = [
+              'old_balance' => $balance,
+              'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
+              'transaction' => $transaction->get()->toArray(),
              ];
-              $user = null;
+              $user->refresh();
+              $wallet->refresh();
               return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Successfull...");
           }
           else{
@@ -191,7 +194,7 @@ trait WalletManager
                 ];
             }
             DB::commit();
-             return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Failed due to trx balance mismatch...");  
+            return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Failed due to trx balance mismatch...");  
           }
         }
         // return $transaction;
@@ -375,4 +378,3 @@ trait WalletManager
     return $this->hasOne(Wallet::class, 'holder_id', 'id');
   }
 }
-

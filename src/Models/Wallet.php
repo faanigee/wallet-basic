@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\RecordsNotFoundException;
 use Illuminate\Support\Str;
 
+
+
 /**
  * Class Wallet.
  *
@@ -29,7 +31,6 @@ use Illuminate\Support\Str;
  */
 class Wallet extends Model
 {
-
 
     /**
      * @var string[]
@@ -114,6 +115,8 @@ class Wallet extends Model
 
     public function getBalance()
     {
+        $this->refresh();
         return (int) $this->balance;
     }
+
 }
