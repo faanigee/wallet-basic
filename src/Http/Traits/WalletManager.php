@@ -35,7 +35,7 @@ trait WalletManager
               $transaction = new Transaction();
               
               
-              $transaction->create([
+              $trx_res = $transaction->create([
                 'wallet_id' => $wallet->id,
                 'payable_type' => 'App\User',
                 'payable_id' => $user_id,
@@ -61,7 +61,8 @@ trait WalletManager
              
               if($checkRefund->count() > 1){
                 $results = [
-                  'transaction' => $checkRefund
+                  'transaction' => $checkRefund,
+                  'message' => 'Reference ID is already exist in deposit, please check the trx id and try again...',
                   ];
                 DB::rollBack();
                 return Helper::ajaxResponse($results, 302, "Transaction Failed (Already Refunded)...");
@@ -70,7 +71,7 @@ trait WalletManager
               DB::commit();
               
               $results = [
-              'transaction' => $transaction->toArray(),
+              'transaction' => $trx_res->toArray(),
               'wallet_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
