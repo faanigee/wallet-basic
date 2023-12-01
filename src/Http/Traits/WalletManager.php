@@ -87,6 +87,8 @@ trait WalletManager
           DB::commit();
           $user->refresh();
           return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
+        
+            
         } else {
 
           DB::commit();
