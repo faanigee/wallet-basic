@@ -20,8 +20,9 @@ class WalletController extends Controller
 
     $user = User::where('id', 1)->with('wallet')->first();
     // dd($user);
-    $res_deposit = $this->deposit($user, 10000, ['description' => 'testing amount', 'working' => 'ok'], 1234);
-    $res_withdraw = $this->withdraw($user, 2500, ['description' => 'testing amount', 'working' => 'ok'],1234);
+    // $res_deposit = $this->deposit($user, 10000, ['description' => 'testing amount', 'working' => 'ok'], 12341, true);
+    // $res_withdraw = $this->withdraw($user, 2500, ['description' => 'testing amount', 'working' => 'ok'], 12341, true);
+    $res_withdraw = $this->withdrawForce($user, 2500, ['description' => 'testing amount', 'working' => 'ok'], 12341, true);
     // $balance = $this->updateBalance(1);
 
     // dd($balance);
@@ -58,13 +59,35 @@ class WalletController extends Controller
       return response('Please Select the User to get the report', 201);
     }
   }
+  
+  public function defaulterReport(){
+      $wallets = [];
+      foreach (Wallet::where('status', 'defaulter')->latest()->get() as $wallet) {
+      if ($wallet) {
+        
+          $data[] = [
+            'holder_id' => $wallet['holder_id'],
+            'id' => $wallet['id'],
+            'wallet_balance' => $wallet['balance'],
+            'transactions_balance' => $wallet['trx_balance'],
+            'status' => $wallet['status'],
+          ];
+      }
+    }
+
+    if ($data) {
+      return view('wallet::defaulter', compact('wallets', 'data'));
+    } else {
+      return response('No Wallet Found with Negative Balance');
+    }
+  }
 
   public function checkDefaulters()
   {
 
     $data = [];
     $wallets = Wallet::where('balance', '<', 0)->get();
-    foreach (Wallet::where('status', 'Active')->where('first_run', 0)->limit(5000)->latest()->get() as $wallet) {
+    foreach (Wallet::where('status', 'defaulter')->where('first_run', 0)->limit(5000)->latest()->get() as $wallet) {
       if ($wallet) {
         $faulter = $this->compareTransactions($wallet);
         if ($faulter['success'] === false && $faulter['data'] != 1) {

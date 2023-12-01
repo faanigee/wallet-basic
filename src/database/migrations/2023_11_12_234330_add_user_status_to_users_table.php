@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('wallet_status', ['active', 'banned', 'under_investigation'])->default('active')->after('id');
+            $table->enum('wallet_status', ['active', 'banned', 'underinvestigation', 'defaulter'])->default('active')->after('id');
             $table->index(['wallet_status'], 'wallet_status_ind');
         });
     }
