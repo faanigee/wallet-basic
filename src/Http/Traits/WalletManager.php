@@ -65,7 +65,7 @@ trait WalletManager
               'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
-              'transaction' => $trx_result->get()->toArray(),
+              // 'transaction' => $trx_result,
             ];
           } else {
             //   return $wallet_status;
@@ -331,7 +331,7 @@ trait WalletManager
               'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
-              'transaction' => $transaction->get()->toArray(),
+              // 'transaction' => $transaction,
             ];
             $user->refresh();
             $wallet->refresh();
