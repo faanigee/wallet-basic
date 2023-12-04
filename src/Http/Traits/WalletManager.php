@@ -65,7 +65,7 @@ trait WalletManager
               'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
-              'transaction' => $trx_result->get()->toArray(),
+              // 'transaction' => $trx_result,
             ];
           } else {
             //   return $wallet_status;
@@ -331,7 +331,7 @@ trait WalletManager
               'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
-              'transaction' => $transaction->get()->toArray(),
+              // 'transaction' => $transaction,
             ];
             $user->refresh();
             $wallet->refresh();
@@ -369,18 +369,26 @@ trait WalletManager
 
   public function approveTransaction($id) {
     if($id)
-    $trx = Transaction::find($id);
-    if($trx){
-      
-      $trx->confirmed = true;
-      $trx->update();
-
-      $wallet = Wallet::find($trx->wallet_id);
-      $wallet->balance += $trx->amount;
-      $wallet->trx_balamce += $trx->amount;
-      $wallet->meta += ['approved_by' => auth()->user()->id];
-      $wallet->update();
-
+    try{
+      $trx = Transaction::find($id);
+      if($trx){
+        
+        $trx->confirmed = true;
+        $trx->update();
+  
+        $wallet = Wallet::find($trx->wallet_id);
+        $wallet->balance += $trx->amount;
+        $wallet->trx_balance += $trx->amount;
+        // $wallet->meta += ['approved_by' => auth()->user()->id];
+        $wallet->update();
+        return Helper::ajaxResponse([], 200, 'Transaction Approved Successfully');
+      }
+      else{
+        return Helper::ajaxResponse([], 302, 'Transaction Approved Successfully');
+      }
+    }
+    catch(\Exception $e){
+      return Helper::ajaxResponse($e->getMessage(), 302, 'Transaction Approved Successfully');
     }
   }
 
