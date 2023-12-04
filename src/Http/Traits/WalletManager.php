@@ -87,8 +87,6 @@ trait WalletManager
           DB::commit();
           $user->refresh();
           return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
-        
-            
         } else {
 
           DB::commit();
@@ -367,29 +365,29 @@ trait WalletManager
     }
   }
 
-  public function approveTransaction($id) {
-    if($id)
-    try{
-      $trx = Transaction::find($id);
-      if($trx){
-        
-        $trx->confirmed = true;
-        $trx->update();
-  
-        $wallet = Wallet::find($trx->wallet_id);
-        $wallet->balance += $trx->amount;
-        $wallet->trx_balance += $trx->amount;
-        // $wallet->meta += ['approved_by' => auth()->user()->id];
-        $wallet->update();
-        return Helper::ajaxResponse([], 200, 'Transaction Approved Successfully');
+  public function approveTransaction($id)
+  {
+    if ($id)
+      try {
+        $trx = Transaction::find($id);
+        if ($trx)
+          if ($trx->confirmed != true || $trx->confirmed != 1) {
+
+            $trx->confirmed = true;
+            $trx->update();
+
+            $wallet = Wallet::find($trx->wallet_id);
+            $wallet->balance += $trx->amount;
+            $wallet->trx_balance += $trx->amount;
+            // $wallet->meta += ['approved_by' => auth()->user()->id];
+            $wallet->update();
+            return Helper::ajaxResponse([], 200, 'Transaction Approved Successfully');
+          } else {
+            return Helper::ajaxResponse([], 302, 'Transaction Approved Successfully');
+          }
+      } catch (\Exception $e) {
+        return Helper::ajaxResponse($e->getMessage(), 302, 'Transaction Approved Successfully');
       }
-      else{
-        return Helper::ajaxResponse([], 302, 'Transaction Approved Successfully');
-      }
-    }
-    catch(\Exception $e){
-      return Helper::ajaxResponse($e->getMessage(), 302, 'Transaction Approved Successfully');
-    }
   }
 
   protected function updateBalance($wallet_id)
