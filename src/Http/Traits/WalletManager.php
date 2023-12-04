@@ -367,6 +367,23 @@ trait WalletManager
     }
   }
 
+  public function approveTransaction($id) {
+    if($id)
+    $trx = Transaction::find($id);
+    if($trx){
+      
+      $trx->confirmed = true;
+      $trx->update();
+
+      $wallet = Wallet::find($trx->wallet_id);
+      $wallet->balance += $trx->amount;
+      $wallet->trx_balamce += $trx->amount;
+      $wallet->meta += ['approved_by' => auth()->user()->id];
+      $wallet->update();
+
+    }
+  }
+
   protected function updateBalance($wallet_id)
   {
     DB::beginTransaction();
