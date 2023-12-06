@@ -558,6 +558,14 @@ trait WalletManager
     return Helper::ajaxResponse($wallet, 302, "Wallet is not found");
   }
 
+  public function balance() {
+    $wallet = Wallet::where('holder_id', $this->id)->first();
+    if($wallet){
+      return $wallet->balance;
+    }else{
+      return 0;
+    }
+  }
   public function wallet()
   {
     return $this->hasOne(Wallet::class, 'holder_id', 'id');
