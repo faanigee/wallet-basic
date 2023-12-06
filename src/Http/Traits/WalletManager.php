@@ -48,10 +48,12 @@ trait WalletManager
               'uuid' => Str::uuid(),
             ])->lockForUpdate();
 
-            $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'deposit')->count();
-            if ($checkRefund > 1) {
-              DB::rollBack();
-              throw new \Exception("Transaction Failed (Already Refunded)...");
+            if ($ref_id) {
+              $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'deposit')->count();
+              if ($checkRefund > 1) {
+                DB::rollBack();
+                throw new \Exception("Transaction Failed (Already Refunded)...");
+              }
             }
 
             if ($trx_result && $confirmed) {
@@ -223,10 +225,12 @@ trait WalletManager
               'uuid' => Str::uuid(),
             ]);
 
-            $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'withdraw')->count();
-            if ($checkRefund > 1) {
-              DB::rollBack();
-              throw new \Exception("Transaction Failed (Already Withdraw)...");
+            if ($ref_id != null) {
+              $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'withdraw')->count();
+              if ($checkRefund > 1) {
+                DB::rollBack();
+                throw new \Exception("Transaction Failed (Already Withdraw)...");
+              }
             }
 
             if ($transaction && $confirmed) {
@@ -558,5 +562,4 @@ trait WalletManager
   {
     return $this->hasOne(Wallet::class, 'holder_id', 'id');
   }
-
 }
