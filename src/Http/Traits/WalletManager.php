@@ -12,7 +12,7 @@ use Faanigee\Wallet\Models\Transaction;
 
 trait WalletManager
 {
-  public function deposit(User $user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
+  public function deposit($user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
   {
     try {
       DB::beginTransaction();
@@ -109,7 +109,7 @@ trait WalletManager
     }
   }
 
-  public function depositForce(User $user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
+  public function depositForce($user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
   {
     try {
       DB::beginTransaction();
@@ -178,7 +178,7 @@ trait WalletManager
     }
   }
 
-  public function withdraw(User $user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
+  public function withdraw($user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
   {
     try {
       DB::beginTransaction();
@@ -284,7 +284,7 @@ trait WalletManager
     }
   }
 
-  public function withdrawForce(User $user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
+  public function withdrawForce($user = null, int|float $amount, ?array $meta = null, $ref_id = null, bool $confirmed = true)
   {
     try {
       DB::beginTransaction();
