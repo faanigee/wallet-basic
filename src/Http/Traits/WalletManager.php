@@ -375,29 +375,28 @@ trait WalletManager
     }
   }
 
-  public function approveTransaction($id)
+  public function confirm($trx)
   {
-    if ($id)
-      try {
-        $trx = Transaction::find($id);
-        if ($trx)
-          if ($trx->confirmed != true || $trx->confirmed != 1) {
+    try {
+      // $trx = Transaction::find($id);
+      if ($trx)
+        if ($trx->confirmed != true || $trx->confirmed != 1) {
 
-            $trx->confirmed = true;
-            $trx->update();
+          $trx->confirmed = true;
+          $trx->update();
 
-            $wallet = Wallet::find($trx->wallet_id);
-            $wallet->balance += $trx->amount;
-            $wallet->trx_balance += $trx->amount;
-            // $wallet->meta += ['approved_by' => auth()->user()->id];
-            $wallet->update();
-            return Helper::ajaxResponse([], 200, 'Transaction Approved Successfully');
-          } else {
-            return Helper::ajaxResponse([], 302, 'Transaction Approved Successfully');
-          }
-      } catch (\Exception $e) {
-        return Helper::ajaxResponse($e->getMessage(), 302, 'Transaction Approved Successfully');
-      }
+          $wallet = Wallet::find($trx->wallet_id);
+          $wallet->balance += $trx->amount;
+          $wallet->trx_balance += $trx->amount;
+          // $wallet->meta += ['approved_by' => auth()->user()->id];
+          $wallet->update();
+          return Helper::ajaxResponse([], 200, 'Transaction Approved Successfully');
+        } else {
+          return Helper::ajaxResponse([], 302, 'Transaction Approved Successfully');
+        }
+    } catch (\Exception $e) {
+      return Helper::ajaxResponse($e->getMessage(), 302, 'Transaction Approved Successfully');
+    }
   }
 
   protected function updateBalance($wallet_id)
@@ -558,11 +557,12 @@ trait WalletManager
     return Helper::ajaxResponse($wallet, 302, "Wallet is not found");
   }
 
-  public function balance() {
+  public function balance()
+  {
     $wallet = Wallet::where('holder_id', $this->id)->first();
-    if($wallet){
+    if ($wallet) {
       return $wallet->balance;
-    }else{
+    } else {
       return 0;
     }
   }
