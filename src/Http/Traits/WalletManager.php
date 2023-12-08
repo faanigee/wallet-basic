@@ -33,9 +33,7 @@ trait WalletManager
             $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
             $balance = $wallet->getBalance();
 
-            $transaction = new Transaction();
-
-            $trx_result = $transaction->create([
+            $trx_result = Transaction::create([
               'wallet_id' => $wallet->id,
               'payable_type' => 'App\User',
               'payable_id' => $user_id,
@@ -46,7 +44,7 @@ trait WalletManager
               'meta' => $meta,
               'confirmed' => $confirmed,
               'uuid' => Str::uuid(),
-            ])->lockForUpdate();
+            ]);
 
             if ($ref_id) {
               $checkRefund = Transaction::where('ref_id', $ref_id)->where('type', 'deposit')->count();
@@ -63,21 +61,35 @@ trait WalletManager
             }
 
             $results = [
-              'old_balance' => $balance,
-              'new_balance' => $wallet->balance,
-              'wallet_trx_bal' => $wallet->trx_balance,
-              'wallet_status' => $wallet->status,
-              // 'transaction' => $trx_result,
+              'old_balance' => $balance ?? 0,
+              'new_balance' => $wallet->balance ?? 0,
+              'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+              'wallet_status' => $wallet->status ?? null,
+              'trx_id' => $transaction->id ?? null,
+              'issue' => $wallet->status ?? null,
+              'transaction' => transaction->toArray() ?? [],
             ];
           } else {
             //   return $wallet_status;
             if ($wallet_status['success'] === false) {
               $results = [
-                'wallet_status' => $wallet_status['data'],
+                'old_balance' => $balance ?? 0,
+                'new_balance' => $wallet->balance ?? 0,
+                'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+                'wallet_status' => $wallet->status ?? null,
+                'trx_id' => $transaction->id ?? null,
+                'issue' => $wallet->status['data'] ?? null,
+                'transaction' => transaction->toArray() ?? [],
               ];
             } else {
               $results = [
-                'wallet_status' => $wallet_status,
+                'old_balance' => $balance ?? 0,
+                'new_balance' => $wallet->balance ?? 0,
+                'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+                'wallet_status' => $wallet->status ?? null,
+                'trx_id' => $transaction->id ?? null,
+                'issue' => $wallet->status ?? null,
+                'transaction' => transaction->toArray() ?? [],
               ];
             }
 
@@ -90,9 +102,17 @@ trait WalletManager
           $user->refresh();
           return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
         } else {
-
+          $results = [
+            'old_balance' => $balance ?? 0,
+            'new_balance' => $wallet->balance ?? 0,
+            'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+            'wallet_status' => $wallet->status ?? null,
+            'trx_id' => $transaction->id ?? null,
+            'issue' => $wallet->status ?? null,
+            'transaction' => transaction->toArray() ?? [],
+          ];
           DB::commit();
-          return Helper::ajaxResponse($result, 302, 'wallet is not exist...!');
+          return Helper::ajaxResponse($results, 302, 'wallet is not exist...!');
         }
 
         // dd($balance, $amount);
@@ -100,12 +120,30 @@ trait WalletManager
         // return $transaction;
 
       } else {
+        $results = [
+          'old_balance' => $balance ?? 0,
+          'new_balance' => $wallet->balance ?? 0,
+          'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+          'wallet_status' => $wallet->status ?? null,
+          'trx_id' => $transaction->id ?? null,
+          'issue' => $wallet->status ?? null,
+          'transaction' => transaction->toArray() ?? [],
+        ];
         DB::rollBack();
         return Helper::ajaxResponse($result, 302, 'wallet is Banned or not exist...!');
       }
     } catch (Exception $e) {
+      $results = [
+        'old_balance' => $balance ?? 0,
+        'new_balance' => $wallet->balance ?? 0,
+        'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+        'wallet_status' => $wallet->status ?? null,
+        'trx_id' => $transaction->id ?? null,
+        'issue' => $e->getTrace() ?? null,
+        'transaction' => transaction->toArray() ?? [],
+      ];
       DB::rollBack();
-      return Helper::ajaxResponse($e->getTrace(), 302, "Exception(WM-69): " . $e->getMessage());
+      return Helper::ajaxResponse($results, 302, "Exception(WM-69): " . $e->getMessage());
     }
   }
 
@@ -127,9 +165,7 @@ trait WalletManager
           $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
           $balance = $wallet->getBalance();
 
-          $transaction = new Transaction();
-
-          $trx_result = $transaction->create([
+          $trx_result = Transaction::create([
             'wallet_id' => $wallet->id,
             'payable_type' => 'App\User',
             'payable_id' => $user_id,
@@ -155,21 +191,41 @@ trait WalletManager
           }
 
           $results = [
-            'old_balance' => $balance,
-            'new_balance' => $wallet->balance,
-            'wallet_trx_bal' => $wallet->trx_balance,
-            'wallet_status' => $wallet->status,
-            'transaction' => $trx_result->toArray(),
+            'old_balance' => $balance ?? 0,
+            'new_balance' => $wallet->balance ?? 0,
+            'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+            'wallet_status' => $wallet->status ?? null,
+            'trx_id' => $transaction->id ?? null,
+            'issue' => $wallet->status ?? null,
+            'transaction' => transaction->toArray() ?? [],
           ];
           DB::commit();
           $user->refresh();
           return Helper::ajaxResponse($results, 200, "User: $currentUser->name, Wallet ID: $wallet->id, Deposite ($amount), Transaction Successfull...");
         } else {
+          $results = [
+            'old_balance' => $balance ?? 0,
+            'new_balance' => $wallet->balance ?? 0,
+            'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+            'wallet_status' => $wallet->status ?? null,
+            'trx_id' => $transaction->id ?? null,
+            'issue' => $wallet->status ?? null,
+            'transaction' => transaction->toArray() ?? [],
+          ];
           DB::commit();
           return Helper::ajaxResponse($result, 302, 'wallet is not exist...!');
         }
       } else {
         DB::rollBack();
+        $results = [
+          'old_balance' => $balance ?? 0,
+          'new_balance' => $wallet->balance ?? 0,
+          'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+          'wallet_status' => $wallet->status ?? null,
+          'trx_id' => $transaction->id ?? null,
+          'issue' => $wallet->status ?? null,
+          'transaction' => transaction->toArray() ?? [],
+        ];
         return Helper::ajaxResponse($result, 302, 'wallet is Banned or not exist...!');
       }
     } catch (Exception $e) {
@@ -244,11 +300,13 @@ trait WalletManager
             DB::commit();
 
             $results = [
-              'old_balance' => $balance,
+              'old_balance' => $balance ?? 0,
               'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
-              'wallet_status' => $wallet->status,
-              'transaction' => $transaction->toArray(),
+              'wallet_status' => $wallet->status ?? null,
+              'trx_id' => $transaction->id ?? null,
+              'issue' => $wallet->status ?? null,
+              'transaction' => transaction->toArray() ?? [],
             ];
             $user->refresh();
             $wallet->refresh();
@@ -257,11 +315,23 @@ trait WalletManager
             //   return $wallet_status;
             if ($wallet_status['success'] === false) {
               $results = [
-                'wallet_status' => $wallet_status['data'],
+                'old_balance' => $balance ?? 0,
+                'new_balance' => $wallet->balance,
+                'wallet_trx_bal' => $wallet->trx_balance,
+                'wallet_status' => $wallet->status ?? null,
+                'trx_id' => $transaction->id ?? null,
+                'issue' => $wallet->status ?? null,
+                'transaction' => transaction->toArray() ?? [],
               ];
             } else {
               $results = [
-                'wallet_status' => $wallet_status,
+                'old_balance' => $balance ?? 0,
+                'new_balance' => $wallet->balance ?? 0,
+                'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+                'wallet_status' =>  $wallet->status ?? null,
+                'trx_id' => $transaction->id ?? null,
+                'issue' => $wallet->status ?? null,
+                'transaction' => transaction->toArray() ?? [],
               ];
             }
             DB::commit();
@@ -272,15 +342,37 @@ trait WalletManager
         else {
           DB::commit();
           $user = null;
-          return Helper::ajaxResponse($result, 302, 'wallet is not exist...!');
+          $results = [
+            'old_balance' => 0,
+            'new_balance' => 0,
+            'wallet_trx_bal' => 0,
+            'wallet_status' => 'not found',
+            'transaction' => [],
+          ];
+          return Helper::ajaxResponse($results, 302, 'wallet is not exist...!');
         }
       } else {
         DB::rollBack();
+        $results = [
+          'old_balance' => 0,
+          'new_balance' => 0,
+          'wallet_trx_bal' => 0,
+          'wallet_status' => 'wallet is Banned',
+          'transaction' => [],
+        ];
         return Helper::ajaxResponse($result, 302, 'wallet is Banned or not exist...!');
       }
     } catch (Exception $e) {
       DB::rollBack();
-      return Helper::ajaxResponse($e->getTrace(), 302, "Exception(WM-126): " . $e->getMessage());
+      $results = [
+        'old_balance' => 0,
+        'new_balance' => 0,
+        'wallet_trx_bal' => 0,
+        'wallet_status' => 'wallet is Banned',
+        'issue' => $e->getTrace(),
+        'transaction' => [],
+      ];
+      return Helper::ajaxResponse($results, 302, "Exception(WM-126): " . $e->getMessage());
     }
   }
 
@@ -322,7 +414,7 @@ trait WalletManager
               'meta' => $meta,
               'confirmed' => $confirmed,
               'uuid' => Str::uuid(),
-            ])->lockForUpdate();
+            ]);
 
             if ($transaction && $confirmed) {
               $balance = $wallet->getBalance();
@@ -339,7 +431,9 @@ trait WalletManager
               'new_balance' => $wallet->balance,
               'wallet_trx_bal' => $wallet->trx_balance,
               'wallet_status' => $wallet->status,
-              // 'transaction' => $transaction,
+              'trx_id' => $transaction->id ?? null,
+              'issue' => null,
+              'transaction' => $transaction->toArray(),
             ];
             $user->refresh();
             $wallet->refresh();
@@ -347,14 +441,19 @@ trait WalletManager
           } else {
             //   return $wallet_status;
             if ($wallet_status['success'] === false) {
-              $results = [
-                'wallet_status' => $wallet_status['data'],
-              ];
+              $ws = $wallet_status['data'];
             } else {
-              $results = [
-                'wallet_status' => $wallet_status,
-              ];
+              $ws = $wallet_status,
             }
+            $results = [
+              'old_balance' => $balance ?? 0,
+              'trx_id' => $transaction->id ?? null,
+              'new_balance' => $wallet->balance ?? 0,
+              'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+              'wallet_status' => $wallet->status ?? null,
+              'issue' => $ws ?? null,
+              'transaction' => $transaction->toArray() ?? null,
+            ];
             DB::commit();
             return Helper::ajaxResponse($results, 302, "User: $currentUser->name, Wallet ID: $wallet->id, Withdrawal ($amount), Transaction Failed due to trx balance mismatch...");
           }
@@ -362,16 +461,45 @@ trait WalletManager
         // return $transaction;
         else {
           DB::commit();
+
+          $results = [
+            'old_balance' => $balance ?? 0,
+            'trx_id' => $transaction->id ?? null,
+            'new_balance' => $wallet->balance ?? 0,
+            'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+            'wallet_status' => $wallet->status ?? null,
+            'issue' => $result ?? null,
+            'transaction' => $transaction->toArray() ?? null,
+          ];
+
           $user = null;
-          return Helper::ajaxResponse($result, 302, 'wallet is not exist...!');
+          return Helper::ajaxResponse($results, 302, 'wallet is not exist...!');
         }
       } else {
         DB::rollBack();
-        return Helper::ajaxResponse($result, 302, 'wallet is Banned or not exist...!');
+        $results = [
+          'old_balance' => $balance ?? 0,
+          'trx_id' => $transaction->id ?? null,
+          'new_balance' => $wallet->balance ?? 0,
+          'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+          'wallet_status' => $wallet->status ?? null,
+          'issue' => $result ?? null,
+          'transaction' => $transaction->toArray() ?? null,
+        ];
+        return Helper::ajaxResponse($results, 302, 'wallet is Banned or not exist...!');
       }
     } catch (Exception $e) {
       DB::rollBack();
-      return Helper::ajaxResponse($e->getTrace(), 302, "Exception(WM-126): " . $e->getMessage());
+      $results = [
+        'old_balance' => $balance ?? 0,
+        'trx_id' => $transaction->id ?? null,
+        'new_balance' => $wallet->balance ?? 0,
+        'wallet_trx_bal' => $wallet->trx_balance ?? 0,
+        'wallet_status' => $wallet->status ?? null,
+        'issue' => $result ?? null,
+        'transaction' => $transaction->toArray() ?? null,
+      ];
+      return Helper::ajaxResponse($results, 302, "Exception(WM-126): " . $e->getMessage());
     }
   }
 
