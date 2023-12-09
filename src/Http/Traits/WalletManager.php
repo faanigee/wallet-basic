@@ -33,7 +33,7 @@ trait WalletManager
             $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
             $balance = $wallet->getBalance();
 
-            $trx_result = Transaction::create([
+            $transaction = Transaction::create([
               'wallet_id' => $wallet->id,
               'payable_type' => 'App\User',
               'payable_id' => $user_id,
@@ -54,7 +54,7 @@ trait WalletManager
               }
             }
 
-            if ($trx_result && $confirmed) {
+            if ($transaction && $confirmed) {
               $wallet->balance += $amount;
               $wallet->trx_balance += $amount;
               $wallet->update();
@@ -67,7 +67,7 @@ trait WalletManager
               'wallet_status' => $wallet->status ?? null,
               'trx_id' => $transaction->id ?? null,
               'issue' => $wallet->status ?? null,
-              'transaction' => transaction->toArray() ?? [],
+              'transaction' => $transaction->toArray() ?? [],
             ];
           } else {
             //   return $wallet_status;
@@ -79,7 +79,7 @@ trait WalletManager
                 'wallet_status' => $wallet->status ?? null,
                 'trx_id' => $transaction->id ?? null,
                 'issue' => $wallet->status['data'] ?? null,
-                'transaction' => transaction->toArray() ?? [],
+                'transaction' => $transaction->toArray() ?? [],
               ];
             } else {
               $results = [
@@ -89,7 +89,7 @@ trait WalletManager
                 'wallet_status' => $wallet->status ?? null,
                 'trx_id' => $transaction->id ?? null,
                 'issue' => $wallet->status ?? null,
-                'transaction' => transaction->toArray() ?? [],
+                'transaction' => $transaction->toArray() ?? [],
               ];
             }
 
@@ -109,7 +109,7 @@ trait WalletManager
             'wallet_status' => $wallet->status ?? null,
             'trx_id' => $transaction->id ?? null,
             'issue' => $wallet->status ?? null,
-            'transaction' => transaction->toArray() ?? [],
+            'transaction' => $transaction->toArray() ?? [],
           ];
           DB::commit();
           return Helper::ajaxResponse($results, 302, 'wallet is not exist...!');
@@ -127,7 +127,7 @@ trait WalletManager
           'wallet_status' => $wallet->status ?? null,
           'trx_id' => $transaction->id ?? null,
           'issue' => $wallet->status ?? null,
-          'transaction' => transaction->toArray() ?? [],
+          'transaction' => $transaction->toArray() ?? [],
         ];
         DB::rollBack();
         return Helper::ajaxResponse($result, 302, 'wallet is Banned or not exist...!');
@@ -140,7 +140,7 @@ trait WalletManager
         'wallet_status' => $wallet->status ?? null,
         'trx_id' => $transaction->id ?? null,
         'issue' => $e->getTrace() ?? null,
-        'transaction' => transaction->toArray() ?? [],
+        'transaction' => $transaction->toArray() ?? [],
       ];
       DB::rollBack();
       return Helper::ajaxResponse($results, 302, "Exception(WM-69): " . $e->getMessage());
@@ -165,7 +165,7 @@ trait WalletManager
           $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
           $balance = $wallet->getBalance();
 
-          $trx_result = Transaction::create([
+          $transaction = Transaction::create([
             'wallet_id' => $wallet->id,
             'payable_type' => 'App\User',
             'payable_id' => $user_id,
@@ -184,7 +184,7 @@ trait WalletManager
             throw new \Exception("Transaction Failed (Already Refunded)...");
           }
 
-          if ($trx_result && $confirmed) {
+          if ($transaction && $confirmed) {
             $wallet->balance += $amount;
             $wallet->trx_balance += $amount;
             $wallet->update();
@@ -197,7 +197,7 @@ trait WalletManager
             'wallet_status' => $wallet->status ?? null,
             'trx_id' => $transaction->id ?? null,
             'issue' => $wallet->status ?? null,
-            'transaction' => transaction->toArray() ?? [],
+            'transaction' => $transaction->toArray() ?? [],
           ];
           DB::commit();
           $user->refresh();
@@ -224,7 +224,7 @@ trait WalletManager
           'wallet_status' => $wallet->status ?? null,
           'trx_id' => $transaction->id ?? null,
           'issue' => $wallet->status ?? null,
-          'transaction' => transaction->toArray() ?? [],
+          'transaction' => $transaction->toArray() ?? [],
         ];
         return Helper::ajaxResponse($result, 302, 'wallet is Banned or not exist...!');
       }
@@ -306,7 +306,7 @@ trait WalletManager
               'wallet_status' => $wallet->status ?? null,
               'trx_id' => $transaction->id ?? null,
               'issue' => $wallet->status ?? null,
-              'transaction' => transaction->toArray() ?? [],
+              'transaction' => $transaction->toArray() ?? [],
             ];
             $user->refresh();
             $wallet->refresh();
@@ -321,7 +321,7 @@ trait WalletManager
                 'wallet_status' => $wallet->status ?? null,
                 'trx_id' => $transaction->id ?? null,
                 'issue' => $wallet->status ?? null,
-                'transaction' => transaction->toArray() ?? [],
+                'transaction' => $transaction->toArray() ?? [],
               ];
             } else {
               $results = [
@@ -331,7 +331,7 @@ trait WalletManager
                 'wallet_status' =>  $wallet->status ?? null,
                 'trx_id' => $transaction->id ?? null,
                 'issue' => $wallet->status ?? null,
-                'transaction' => transaction->toArray() ?? [],
+                'transaction' => $transaction->toArray() ?? [],
               ];
             }
             DB::commit();
@@ -427,13 +427,13 @@ trait WalletManager
             DB::commit();
 
             $results = [
-              'old_balance' => $balance,
-              'new_balance' => $wallet->balance,
-              'wallet_trx_bal' => $wallet->trx_balance,
-              'wallet_status' => $wallet->status,
+              'old_balance' => $balance ?? 0,
+              'new_balance' => $wallet->balance ?? 0,
+              'wallet_trx_bal' => $wallet->trx_balance ?? null,
+              'wallet_status' => $wallet->status ?? null,
               'trx_id' => $transaction->id ?? null,
               'issue' => null,
-              'transaction' => $transaction->toArray(),
+              'transaction' => $transaction->toArray() ?? [],
             ];
             $user->refresh();
             $wallet->refresh();
@@ -443,7 +443,7 @@ trait WalletManager
             if ($wallet_status['success'] === false) {
               $ws = $wallet_status['data'];
             } else {
-              $ws = $wallet_status,
+              $ws = $wallet_status;
             }
             $results = [
               'old_balance' => $balance ?? 0,
@@ -699,7 +699,7 @@ trait WalletManager
     return $this->hasOne(Wallet::class, 'holder_id', 'id');
   }
 
-  public function transactions($id) {
+  public function getTrx($id) {
     return Transaction::find($id);
   }
 }
