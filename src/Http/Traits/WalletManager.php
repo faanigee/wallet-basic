@@ -699,7 +699,7 @@ trait WalletManager
     return $this->hasOne(Wallet::class, 'holder_id', 'id');
   }
 
-  public function getTrx($id) {
+  public function transactions($id) {
     return Transaction::find($id);
   }
 }
